@@ -4,44 +4,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import argparse
-import time
-
 #-------------------------------------------------------------------------
 class Board(object):
-   def __init__(self, size, seed = 'Random', update = 0.1):
-      if seed == 'Random':
-         self.state = np.random.randint(2, size = size)
-      self.engine = Engine(self)
+   def __init__(self, size, initialState):
       self.iteration = 0
-      self.update = update
-   def animate(self):
-      i = self.iteration
-      im = None
-      plt.title("Conway's Game of Life")
-      while True:
-         if i == 0:
-            plt.ion()
-            im = plt.imshow(self.state, vmin = 0, vmax = 2, cmap = plt.cm.gray)
-         else:
-            im.set_data(self.state)
-         i += 1
-         self.engine.applyRules()
-         print('Life Cycle: {} Birth: {} Survive: {}'.format(i, self.engine.nBirth, self.engine.nSurvive))
-         plt.pause(self.update)
-         yield self
+      self.state = initialState
 
-#-------------------------------------------------------------------------
-
-class Engine(object):
-   def __init__(self, board):
-      self.state = board.state
+   # Examine the 8 neighbouring cells and return number occupied.
    def countNeighbors(self):
       state = self.state
       n = (state[0:-2,0:-2] + state[0:-2,1:-1] + state[0:-2,2:] +
           state[1:-1,0:-2] + state[1:-1,2:] + state[2:,0:-2] +
           state[2:,1:-1] + state[2:,2:])
       return n
-   def applyRules(self):
+
+   def interate(self):
+      self.iteration += 1
       n = self.countNeighbors()
       state = self.state
       birth = (n == 3) & (state[1:-1,1:-1] == 0)
@@ -52,6 +30,7 @@ class Engine(object):
       self.nBirth = nBirth
       nSurvive = np.sum(survive)
       self.nSurvive = nSurvive
+      #print('Life Cycle: {} Birth: {} Survive: {}'.format(self.iteration, self.nBirth, self.nSurvive))
       return state
 
 #-------------------------------------------------------------------------
@@ -60,16 +39,27 @@ def main():
    ap = argparse.ArgumentParser(add_help = False) # Intilialize Argument Parser
    ap.add_argument('-h', '--height', help = 'Board Height', default = 500)
    ap.add_argument('-w', '--width', help = 'Board Width', default = 500)
+   ap.add_argument('-u', '--update', help = 'Update time', default = 0.5)
    args = vars(ap.parse_args()) # Gather Arguments
+   
    bHeight = int(args['height'])
-   bWidth = int(args['width'])
-   board = Board((bHeight,bWidth), update=1)
+   bWidth = int(args['width'])  
+   updateTime = float(args['update'])  
 
+   # Init board with random state
+   board = Board((bHeight,bWidth), initialState=np.random.randint(2, size = (bHeight,bWidth)))
+   plt.title("Conway's Game of Life")
+   plt.ion()
+   boardview = plt.imshow(board.state, vmin = 0, vmax = 2, cmap = plt.cm.gray)
+   plt.autoscale()
+   
+   # Game loop
    try :
-      for _ in board.animate():
-         pass   
+      while True:
+         boardview.set_data(board.interate())
+         plt.pause(updateTime)
+         
    except KeyboardInterrupt:
-      print("Exit")
       exit()
 
 #-------------------------------------------------------------------------
